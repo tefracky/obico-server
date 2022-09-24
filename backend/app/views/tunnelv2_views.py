@@ -337,7 +337,7 @@ def _octoprint_http_tunnel(request, octoprinttunnel):
         if 'Expires=' not in cookie and 'Max-Age=' not in cookie:
             cookie += '; Max-Age=7776000'  # 3 months
 
-        resp['Set-Cookie'] = cookie
+        resp.set_cookie(cookie.split('=')[0], ''.join(cookie.split('=')[1:]))
 
     if data['response'].get('compressed', False):
         content = zlib.decompress(data['response']['content'])
