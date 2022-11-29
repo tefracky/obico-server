@@ -1,4 +1,5 @@
 import get from 'lodash/get'
+import find from 'lodash/find'
 
 import Janus from '@src/lib/janus'
 
@@ -9,7 +10,7 @@ export default function WebRTCConnection() {
   let self = {
     callbacks: {},
     initialized: false,
-    streamId: undefined,
+    videoStreamId: undefined,
     streaming: undefined,
     bitrateInterval: null,
 
@@ -71,17 +72,23 @@ export default function WebRTCConnection() {
               opaqueId: opaqueId,
               success: function (pluginHandle) {
                 Janus.log('Plugin attached! (' + pluginHandle.getPlugin() + ', id=' + pluginHandle.getId() + ')')
-
-                const body = { 'request': 'info', id: 0 }
+                const body = { 'request': 'list'}
                 Janus.debug('Sending message (' + JSON.stringify(body) + ')')
                 pluginHandle.send({
                   'message': body, success: function (result) {
-                    let stream = get(result, 'info')
-                    if (stream) {
-                      self.streamId = stream.id
+                    if (get(result, 'list[0]')) { // Janus is running and has at least 1 stream
                       self.streaming = pluginHandle
-                      if (get(stream, 'video')) {
-                        self.callbacks.onStreamAvailable()
+
+                      const streamList = get(result, 'list')
+                      if (get(streamList, '[0].media')) {  // Janus 1.x
+                        self.videoStreamId = find(streamList, {description: 'h264-video', enabled: true})?.id
+                      } else { // Janus 0.x
+                        if (get(streamList, '[0].video')) {
+                          self.videoStreamId = get(streamList, '[0].id')
+                        }
+                      }
+                      if (self.videoStreamId) {
+                        self.callbacks.onVideoStreamAvailable()
                       }
                     }
                   }
@@ -136,7 +143,7 @@ export default function WebRTCConnection() {
         },
         destroyed() {
           self.streaming = undefined
-          self.streamId = undefined
+          self.videoStreamId = undefined
           self.clearBitrateInterval()
         }
       })
@@ -182,13 +189,13 @@ export default function WebRTCConnection() {
       }
     },
     channelOpen() {
-      return !(self.streamId === undefined || self.streaming === undefined)
+      return !(self.videoStreamId === undefined || self.streaming === undefined)
     },
-    startStream() {
+    startVideoStream() {
       if (!self.channelOpen()) {
         return
       }
-      const body = { 'request': 'watch', offer_video: true, id: parseInt(self.streamId) }
+      const body = { 'request': 'watch', offer_video: true, id: parseInt(self.videoStreamId) }
       self.streaming?.send({ 'message': body })
 
       self.clearBitrateInterval()

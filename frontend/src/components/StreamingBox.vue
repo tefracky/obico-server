@@ -102,7 +102,7 @@ export default {
     if (this.webrtc) {
       this.webrtc.callbacks = {
         ...this.webrtc.callbacks,
-        onStreamAvailable: this.onStreamAvailable,
+        onVideoStreamAvailable: this.onVideoStreamAvailable,
         onRemoteStream: this.onWebRTCRemoteStream,
         onCleanup: this.onWebRTCCleanup,
         onSlowLink: this.onSlowLink,
@@ -123,7 +123,7 @@ export default {
 
       ifvisible.on('focus', () => {
         if (this.webrtc && this.autoplay) {
-          this.webrtc.startStream()
+          this.webrtc.startVideoStream()
         }
       })
     }
@@ -226,15 +226,15 @@ export default {
     onLoadStart() {
       this.videoLoading = true
     },
-    onStreamAvailable() {
+    onVideoStreamAvailable() {
       if (this.autoplay) {
-        this.webrtc.startStream()
+        this.webrtc.startVideoStream()
       } else {
         if (!this.printer.basicStreamingInWebrtc()) {
           return
         }
         if ((!this.autoplay && this.isBasicStreamingInProgress)) {
-          this.webrtc.startStream()
+          this.webrtc.startVideoStream()
         }
         this.videoLimit.resumeVideoCycle()
       }
@@ -295,7 +295,7 @@ export default {
     /** Video warning handling */
 
     onPlayBtnClicked() {
-      this.webrtc.startStream()
+      this.webrtc.startVideoStream()
     },
 
     fixSlowLinkTextWidth() {
